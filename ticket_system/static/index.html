@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>TicketFlow - Seat Map</title>
+    <style>
+      body { font-family: Arial, sans-serif; padding: 20px }
+      #seatmap { display: grid; gap: 6px; }
+      .seat { width: 34px; height: 34px; border-radius: 4px; display:flex; align-items:center; justify-content:center; cursor:pointer }
+      .available { background: #e6ffed }
+      .held { background: #fff5b1 }
+      .booked { background: #f8d7da }
+    </style>
+  </head>
+  <body>
+    <h1>Seat Map (demo)</h1>
+    <label>Show ID: <input id="showId" value="1"/></label>
+    <button id="load">Load Seats</button>
+    <div id="seatmap"></div>
+
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    <script src="/static/seatmap.js"></script>
+  </body>
+</html>
