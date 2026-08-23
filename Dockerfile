@@ -16,4 +16,4 @@ ENV PYTHONUNBUFFERED=1
 
 EXPOSE 5000
 
-CMD ["gunicorn", "-k", "eventlet", "-w", "1", "run:app", "-b", "0.0.0.0:5000"]
+CMD gunicorn -k eventlet -w 1 run:app -b 0.0.0.0:$PORT

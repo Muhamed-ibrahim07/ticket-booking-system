@@ -1,3 +1,6 @@
+import eventlet
+eventlet.monkey_patch()
+
 from ticket_system import create_app
 
 app = create_app()
