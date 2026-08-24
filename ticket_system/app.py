@@ -388,16 +388,18 @@ def create_app():
             released = release_expired_holds()
             skipped = sweep_expired_offers()
             return jsonify({'ok': True, 'released_holds': int(released), 'expired_offers_skipped': int(skipped)})
-            except Exception:
-                app.logger.exception('Sweep failed')
-                return jsonify({'ok': False, 'reason': 'sweep_failed'}), 500
+        except Exception:
+            app.logger.exception('Sweep failed')
+            return jsonify({'ok': False, 'reason': 'sweep_failed'}), 500
 
 
-        @app.route('/', methods=['GET'])
-        def index():
-            # Serve the single-file SPA from the package static folder
-            try:
-                return app.send_static_file('index.html')
+    @app.route('/', methods=['GET'])
+    def index():
+        # Serve the single-file SPA from the package static folder
+        try:
+            return app.send_static_file('index.html')
+        except Exception:
+            return send_from_directory(os.path.join(app.root_path, 'static'), 'index.html')
             except Exception:
                 # fallback: explicit send_from_directory
                 return send_from_directory(os.path.join(app.root_path, 'static'), 'index.html')
