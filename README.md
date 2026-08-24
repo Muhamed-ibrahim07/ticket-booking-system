@@ -1,175 +1,166 @@
 # Ticket Booking System
 
-A simplified, self-contained Ticket Booking System built with Flask, SQLAlchemy and Socket.IO. Provides a SPA frontend (served from the app), JWT auth, seat holds with TTL, waitlist offers, DB-backed concurrency protection, and an admin sweep endpoint for maintenance.
+**Repository:** [Muhamed-ibrahim07/ticket-booking-system](https://github.com/Muhamed-ibrahim07/ticket-booking-system)
 
-**Repository layout (relevant)**
-- **ticket_system/**: Python package with the application
-- **ticket_system/ticket_system/app.py**: Flask application factory and HTTP routes
-- **ticket_system/ticket_system/models.py**: SQLAlchemy models
-- **ticket_system/ticket_system/tasks.py**: synchronous maintenance tasks (sweep, email helpers)
-- **ticket_system/ticket_system/static/**: single-file SPA (`index.html`, `app.js`, `styles.css`)
-- **seed.py**: seeds the DB with an admin, organiser, customer, a venue, show and seats
-- **run.py**: entrypoint that applies eventlet monkey-patch and instantiates the app
-- **Dockerfile**, **docker-compose.yml**, **requirements.txt** (project root)
+TicketFlow is a Flask ticket-booking API with a small React seat-map client. It demonstrates authentication, event and venue management, temporary seat holds, booking conversion, cancellation, waitlists, signed offers, and database-level protection against double booking.
 
-**Features**
-- Visual single-file SPA served from `/` for manual testing
-- JWT-based auth (`/api/register`, `/api/login`, `/api/me`)
-- Seat hold mechanism with TTL (no Celery/Redis; uses DB + admin sweep endpoint)
-- Waitlist with auto-offer and TTL acceptance token
-- DB-level unique constraints to protect concurrency when booking
-- Real-time seat status updates via Socket.IO (`seat_update` events)
-- Admin sweep endpoint for releasing expired holds and expiring offers (`/api/admin/sweep`)
-- Docker + docker-compose for local deployment
+## What This Project Demonstrates
 
-Quick local setup
-1. Create a Python virtual environment and activate it:
+- JWT registration, login, identity lookup, and role-based authorization.
+- Admin venue creation and organiser show creation with generated seats.
+- Customer seat holds with a configurable time-to-live (TTL).
+- Conversion of an active hold into a booking with a UUID booking reference.
+- Booking cancellation and waitlist offer handling.
+- Seat availability queries and Socket.IO `seat_update` notifications.
+- A database uniqueness constraint for bookings and a PostgreSQL partial unique index for active holds.
+- SQLite for a quick local demonstration and PostgreSQL through Docker Compose.
 
-```bash
-python -m venv .venv
-source .venv/Scripts/activate    # Windows PowerShell: .venv\Scripts\Activate.ps1
-```
+## Technology
 
-2. Install dependencies:
+- Python 3.11, Flask, Flask-SQLAlchemy, Flask-JWT-Extended, Flask-SocketIO
+- PostgreSQL for the containerized deployment; SQLite is the local default
+- React 18 and Socket.IO client in `frontend/`
+- Gunicorn with Eventlet for the production-like server command
 
-```bash
-pip install -r requirements.txt
-```
+## Repository Map
 
-3. Set minimal environment variables (optional; defaults exist for local development):
+| Path | Purpose |
+| --- | --- |
+| `ticket_system/app.py` | Flask application factory and API routes |
+| `ticket_system/models.py` | Users, venues, shows, seats, holds, bookings, and waitlists |
+| `ticket_system/tasks.py` | Expired-hold and waitlist maintenance helpers |
+| `seed.py` | Creates sample users, venue, show, and 50 seats |
+| `run.py` | Eventlet-compatible development entrypoint |
+| `frontend/src/App.js` | React seat-map demonstration client |
+| `tests/test_concurrency.py` | Concurrent hold integration test |
+| `API_DOCS.md` | Compact endpoint reference |
+| `SYSTEM_DESIGN.md` | Design decisions and concurrency explanation |
 
-```bash
-export FLASK_ENV=development
-export DATABASE_URL=sqlite:///dev.db         # or a Postgres URL
-export SECRET_KEY="change-me"
-export JWT_SECRET_KEY="change-me"
-export SWEEP_SECRET="sweep-secret"
-```
+## Run Locally on Windows
 
-4. Initialize DB and seed sample data (recommended):
+From the repository root:
 
-```bash
+```powershell
+py -3.11 -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
 python seed.py
-```
-
-Run locally (development)
-
-- Run with the bundled eventlet-patched entrypoint for Socket.IO compatibility:
-
-```bash
 python run.py
-# or, with Gunicorn (production-like):
-gunicorn -k eventlet -w 1 run:app -b 0.0.0.0:5000
 ```
 
-- Open http://localhost:5000/ to access the SPA. The SPA uses `fetch()` and Socket.IO to exercise the API.
+Open [http://localhost:5000/](http://localhost:5000/). The default database is `sqlite:///dev.db`, so PostgreSQL is not required for the basic demonstration.
 
-Run with Docker Compose
+If PowerShell blocks script activation, run `Set-ExecutionPolicy -Scope Process Bypass` in that terminal and activate the environment again.
 
-```bash
-docker-compose up --build
-# seed inside container (after web container is ready):
-docker-compose exec web python seed.py
+## Run with Docker
+
+Docker provides PostgreSQL and the web service together:
+
+```powershell
+docker compose up --build
+docker compose exec web python seed.py
 ```
 
-Environment variables (summary)
-- `DATABASE_URL` — SQLAlchemy database URL (default: `sqlite:///dev.db`)
-- `SECRET_KEY` — Flask secret key (required for some features)
-- `JWT_SECRET_KEY` — secret for JWT tokens
-- `SWEEP_SECRET` — static secret for `POST /api/admin/sweep`
-- `PORT` — port to bind when using environment-driven deploys (Render)
-- Optional email SMTP settings if you wire up booking emails (see `tasks.py`)
+Open [http://localhost:5000/](http://localhost:5000/). Stop the services with `Ctrl+C`, or run `docker compose down`.
 
-Admin sweep (cron-friendly)
-- Endpoint: `POST /api/admin/sweep`
-- Protect by sending header `X-Sweep-Secret: <SWEEP_SECRET>` (or `?sweep_secret=` query param)
-- Use your system cron or an external scheduler to call this periodically (e.g., every minute or two) to release expired holds and expire waitlist offers.
+## Environment Configuration
 
-Key API endpoints (high level)
-- `POST /api/register` — register user (role: customer/organiser/admin)
-- `POST /api/login` — login, returns JWT access token
-- `GET /api/me` — get current user info (requires JWT)
-- `POST /api/hold_seat` — hold a seat (requires JWT)
-- `POST /api/book` — convert a hold into a booking (requires JWT)
-- `GET /api/seats/<show_id>` — list seats and statuses
-- `POST /api/join_waitlist` — join a waitlist for a show/category
-- `POST /api/accept_offer` — accept an offered waitlist hold via signed token
-- `POST /api/cancel_booking` — cancel a booking (customer)
-- `POST /api/venues` — create venue (admin)
-- `POST /api/shows` — create show (organiser)
+The application has useful development defaults. For a custom setup, define:
 
-WebSocket events
-- Event name: `seat_update` — payload includes `show_id`, `seat_id`, `status` (`held`/`booked`/`vacant`)
-
-Development checks
-- Verify Python syntax for critical files (example):
-
-```bash
-python -m py_compile ticket_system/ticket_system/app.py
+```text
+DATABASE_URL=postgresql://user:password@localhost:5432/ticketdb
+SECRET_KEY=replace-me
+JWT_SECRET_KEY=replace-jwt
+SEAT_HOLD_DEFAULT_TTL=600
+WAITLIST_OFFER_TTL=900
 ```
 
-Troubleshooting
-- If the SPA shows empty seats or API returns 500s, check logs for DB migrations and ensure `seed.py` ran successfully.
-- For concurrency surprises, prefer Postgres (set `DATABASE_URL` to a Postgres URI). The project contains helper code to create a partial unique index for active holds when running on Postgres.
-- If Socket.IO connections fail, ensure `eventlet` is installed and you run with `python run.py` or use Gunicorn with `-k eventlet`.
+Copy `.env.example` as a starting point. Never use development secrets in a public deployment.
 
-Notes for graders / deploy
-- This project intentionally avoids Celery/Redis: asynchronous maintenance is performed via a cronable admin endpoint and synchronous helper functions in `tasks.py`. That keeps the stack self-contained for local grading.
+## Seed Accounts
 
-Next actions you might want me to do
-- Run the app and open the SPA in a browser and verify flows
-- Add CI script or a simple `Makefile` for common tasks
-- Harden env validation and add an example `.env` file
+Running `python seed.py` creates these demonstration accounts:
 
----
-If you want, I can commit this `README.md` into the repo now. Say "Yes, commit" and I'll run the git commands.# Ticket Booking System (scaffold)
+| Role | Email | Password |
+| --- | --- | --- |
+| Admin | `admin@example.com` | `adminpass` |
+| Organiser | `organiser@example.com` | `organiserpass` |
+| Customer | `customer@example.com` | `custpass` |
 
-This repo contains a Flask-based scaffold for a ticket booking system implementing seat holds with TTL, waitlist entries, bookings, QR ticket generation, Celery tasks and Redis integration.
+These credentials are for local grading only.
 
-Quick start
+## Assessment Walkthrough
 
-1. Copy `.env.example` to `.env` and set values (Postgres + Redis).
-2. Create a Python venv and install:
+1. Start the server and run `python seed.py`.
+2. Call `GET /api/events` and record the seeded `show_id`.
+3. Register or log in as a customer and save the returned `access_token`.
+4. Call `GET /api/seats/<show_id>` and confirm the seeded seats are available.
+5. Hold one seat with the JWT. Confirm the response contains `hold_id` and `expires_at`.
+6. Call `POST /api/book` with that `hold_id`. Confirm a unique `booking_ref` is returned.
+7. Call `GET /api/bookings` with the same JWT and confirm the booking is listed.
+8. Attempt to hold or book the same seat with another customer. The system must reject the conflicting operation.
+9. Cancel the booking and query the seat map again. The seat must become available.
+10. Use two customers to verify waitlist join, cancellation-triggered offer, and signed offer acceptance.
+11. Use the organiser account to create a show and the admin account to create a venue. Confirm role restrictions with the wrong account.
 
-```bash
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
+## API Smoke Test
+
+PowerShell example:
+
+```powershell
+$login = Invoke-RestMethod http://localhost:5000/api/login -Method Post -ContentType 'application/json' -Body '{"email":"customer@example.com","password":"custpass"}'
+$token = $login.access_token
+$headers = @{ Authorization = "Bearer $token" }
+
+Invoke-RestMethod http://localhost:5000/api/me -Headers $headers
+Invoke-RestMethod http://localhost:5000/api/events
+Invoke-RestMethod http://localhost:5000/api/seats/1
+
+$hold = Invoke-RestMethod http://localhost:5000/api/hold_seat -Method Post -Headers $headers -ContentType 'application/json' -Body '{"show_id":1,"seat_id":1,"ttl":120}'
+$hold
+
+Invoke-RestMethod http://localhost:5000/api/book -Method Post -Headers $headers -ContentType 'application/json' -Body (ConvertTo-Json @{ hold_id = $hold.hold_id })
+Invoke-RestMethod http://localhost:5000/api/bookings -Headers $headers
 ```
 
-3. Run the app locally:
+For the complete route list and payload shapes, see [API_DOCS.md](API_DOCS.md).
 
-```bash
-set FLASK_APP=run.py
-flask run
+## Tests and Quality Checks
+
+Run these from the repository root:
+
+```powershell
+python -m py_compile run.py seed.py ticket_system\app.py ticket_system\models.py
+python -m pytest -q
 ```
 
-4. Start Celery worker:
+The concurrency test expects the server to be running at `http://localhost:5000` and checks that at most one of 20 simultaneous requests can hold the same seat:
 
-```bash
-celery -A ticket_system.celery_worker.celery worker -B --loglevel=info
+```powershell
+python -m pytest -q tests/test_concurrency.py
 ```
 
-5. (Optional) Start Redis keyspace listener to auto-release expired holds:
+The test is intentionally integration-oriented. PostgreSQL is the recommended database when demonstrating concurrent requests because its partial unique index is the strongest representation of the production constraint.
 
-```bash
-python -m ticket_system.ticket_system.redis_listener
+## Frontend Check
+
+The React client in `frontend/` is a minimal seat-map demonstration. To build it:
+
+```powershell
+cd frontend
+npm install
+npm run build
 ```
 
-Docker quickstart
+The build confirms that the React client compiles. The Flask application remains the primary runnable demonstration and API under test.
 
-1. Build and run the entire stack with Docker Compose:
+## Design Notes
 
-```bash
-docker-compose up --build
-```
+Seat ownership is protected by the database, not by a client-side check. An active hold expires according to `expires_at`; maintenance helpers release expired holds and advance expired waitlist offers. Booking references are UUIDs, and JWT claims carry the authenticated user and role. The rationale and trade-offs are documented in [SYSTEM_DESIGN.md](SYSTEM_DESIGN.md).
 
-2. Open `http://localhost:5000/static/index.html` for a minimal seat map UI.
+## Limitations and Scope
 
-Create delivery zip
-
-```bash
-python make_zip.py
-```
-
-See the code for models and tasks. This scaffold focuses on the concurrency and TTL primitives; expand the frontend and auth as next steps.
+- The frontend is a demonstration client rather than a complete checkout interface.
+- Payment processing is outside the scope of this project.
+- Email delivery is represented by helper logic and requires a provider configuration for real messages.
+- Development seed passwords and secret defaults must be replaced before deployment.
