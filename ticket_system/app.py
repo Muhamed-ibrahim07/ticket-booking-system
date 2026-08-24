@@ -1,5 +1,5 @@
 import os
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from datetime import datetime, timedelta
 from sqlalchemy.exc import IntegrityError
 
@@ -100,6 +100,16 @@ def create_app():
         additional_claims = {'role': user.role}
         access = create_access_token(identity=user.id, additional_claims=additional_claims)
         return jsonify({'ok': True, 'access_token': access})
+
+
+    @app.route('/api/me', methods=['GET'])
+    @jwt_required()
+    def api_me():
+        user_id = get_jwt_identity()
+        u = User.query.get(user_id)
+        if not u:
+            return jsonify({'ok': False, 'reason': 'not_found'}), 404
+        return jsonify({'ok': True, 'user': {'id': u.id, 'name': u.name, 'email': u.email, 'role': u.role}})
 
 
     def role_required(role):
@@ -378,8 +388,18 @@ def create_app():
             released = release_expired_holds()
             skipped = sweep_expired_offers()
             return jsonify({'ok': True, 'released_holds': int(released), 'expired_offers_skipped': int(skipped)})
-        except Exception:
-            app.logger.exception('Sweep failed')
-            return jsonify({'ok': False, 'reason': 'sweep_failed'}), 500
+            except Exception:
+                app.logger.exception('Sweep failed')
+                return jsonify({'ok': False, 'reason': 'sweep_failed'}), 500
+
+
+        @app.route('/', methods=['GET'])
+        def index():
+            # Serve the single-file SPA from the package static folder
+            try:
+                return app.send_static_file('index.html')
+            except Exception:
+                # fallback: explicit send_from_directory
+                return send_from_directory(os.path.join(app.root_path, 'static'), 'index.html')
 
     return app

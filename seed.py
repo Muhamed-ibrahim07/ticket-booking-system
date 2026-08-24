@@ -2,9 +2,9 @@
 import os
 from datetime import datetime, timedelta
 
-from ticket_system.ticket_system.app import create_app
-from ticket_system.ticket_system.extensions import db
-from ticket_system.ticket_system.models import User, Venue, Show, Seat
+from ticket_system import create_app
+from ticket_system.extensions import db
+from ticket_system.models import User, Venue, Show, Seat
 
 
 def seed():

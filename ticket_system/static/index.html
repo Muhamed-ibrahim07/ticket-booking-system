@@ -1,4 +1,123 @@
 <!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Ticket Booking Demo</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>Ticket Booking System (Demo)</h1>
+      <div id="user-bar">Not logged in</div>
+    </header>
+
+    <nav>
+      <button data-view="auth" class="nav-btn">Login / Register</button>
+      <button data-view="customer" class="nav-btn">Customer</button>
+      <button data-view="organiser" class="nav-btn">Organiser</button>
+      <button data-view="admin" class="nav-btn">Admin</button>
+    </nav>
+
+    <main>
+      <section id="view-auth" class="view">
+        <div class="card">
+          <h2>Login</h2>
+          <form id="login-form">
+            <input name="email" placeholder="Email" required>
+            <input name="password" type="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Register</h2>
+          <form id="register-form">
+            <input name="name" placeholder="Full name" required>
+            <input name="email" placeholder="Email" required>
+            <input name="password" type="password" placeholder="Password" required>
+            <select name="role">
+              <option value="customer">Customer</option>
+              <option value="organiser">Organiser</option>
+              <option value="admin">Admin</option>
+            </select>
+            <button type="submit">Register</button>
+          </form>
+        </div>
+      </section>
+
+      <section id="view-customer" class="view hidden">
+        <div class="card">
+          <h2>Events</h2>
+          <select id="events-list"></select>
+          <button id="load-show">Load Seat Map</button>
+        </div>
+
+        <div class="card">
+          <h2>Seat Map</h2>
+          <div id="seat-map"></div>
+          <div id="hold-info" class="hidden">
+            <p>Held seat: <span id="held-seat"></span></p>
+            <p>Expires in: <span id="hold-ttl"></span></p>
+            <button id="confirm-book">Confirm Booking</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>My Bookings</h2>
+          <div id="my-bookings"></div>
+        </div>
+      </section>
+
+      <section id="view-organiser" class="view hidden">
+        <div class="card">
+          <h2>Create Venue</h2>
+          <form id="venue-form">
+            <input name="name" placeholder="Venue name" required>
+            <input name="rows" type="number" placeholder="Rows" required>
+            <input name="cols" type="number" placeholder="Cols" required>
+            <button type="submit">Create Venue</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Create Show</h2>
+          <form id="show-form">
+            <input name="event_name" placeholder="Event name" required>
+            <input name="venue_id" placeholder="Venue ID" required>
+            <input name="start_at" placeholder="Start ISO (YYYY-MM-DDTHH:MM)" required>
+            <textarea name="category_prices" placeholder="Category:price, comma-separated e.g. Premium:30,Standard:10"></textarea>
+            <button type="submit">Create Show</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Show Summary</h2>
+          <input id="summary-show-id" placeholder="Show ID"><button id="load-summary">Load</button>
+          <div id="summary-result"></div>
+        </div>
+      </section>
+
+      <section id="view-admin" class="view hidden">
+        <div class="card">
+          <h2>Admin - Create Venue</h2>
+          <form id="admin-venue-form">
+            <input name="name" placeholder="Venue name" required>
+            <input name="rows" type="number" placeholder="Rows" required>
+            <input name="cols" type="number" placeholder="Cols" required>
+            <button type="submit">Create Venue</button>
+          </form>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
+<!doctype html>
 <html>
   <head>
     <meta charset="utf-8" />
